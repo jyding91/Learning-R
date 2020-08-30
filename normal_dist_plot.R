@@ -1,0 +1,6 @@
+x = rnorm(1000)
+y = rnorm(1000, sd =3)
+df = data.frame(x,y)
+view(df)
+library(ggplot2)
+ggplot(df, aes(x = x, y = y)) + geom_point()
