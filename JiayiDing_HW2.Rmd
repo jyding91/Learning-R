@@ -1,0 +1,197 @@
+---
+title: "Homework 2 Movies"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r}
+remove(list = ls())
+```
+
+# Data is from https://grouplens.org/datasets/movielens/
+# Use "MovieLens 1M Dataset"
+
+```{r}
+file1 <- "data/ml-1m/users.dat"
+users <- read.table(file1, sep=":", header=FALSE, as.is = TRUE)
+users <- Filter(function(x)!all(is.na(x)), users) #delete the empty columns
+colnames(users) <- c("user_id", "gender", "age", "occupation", "zip")
+```
+
+```{r}
+file2 <- 'data/ml-1m/movies_2.dat'
+movies <- read.delim(file2, sep="_", header=FALSE, as.is = TRUE)
+movies <- Filter(function(x)!all(is.na(x)), movies) #delete the empty columns
+colnames(movies)<-c('movie_id', 'title', 'genres')
+```
+
+```{r}
+file3 <- 'data/ml-1m/ratings.dat'
+ratings <- read.table(file3, sep=":", header=FALSE, as.is = TRUE)
+ratings <- Filter(function(x)!all(is.na(x)), ratings) #delete the empty columns
+colnames(ratings)<-c('user_id', 'movie_id', 'rating', 'timestamp')
+```
+
+```{r}
+View(movies)
+View(ratings)
+View(users)
+```
+
+```{r}
+# A more efficient table format
+# install.packages('DT')
+library('DT')
+datatable(users)
+datatable(movies)
+datatable(ratings)
+```
+
+```{r}
+users_ratings <- merge(users,ratings,by='user_id') # merge two data by id.
+# users_ratings[0:8]
+```
+
+```{r}
+movies_ratings <- merge(movies, ratings, by='movie_id') # merge two data by id.
+# movies_ratings[0:6]
+```
+
+```{r}
+data1 <- merge(movies_ratings, users, by='user_id') # merge two data by id.
+data2 <- data1[,c("movie_id", "title", "genres","user_id","rating",
+               "timestamp","gender","age","occupation","zip")]
+data3 <- data2[order(data2[,4],data2[,1]),]
+View(data3)
+```
+
+```{r}
+# Displace the third row
+View(data3[3,])
+```
+
+```{r}
+# Displace the 443890th row
+View(data3[443890,])
+```
+
+```{r}
+# Get average ratings of all movies and separate by gender
+# install.packages("dplyr")
+# install.packages("tidyr")
+library(dplyr)
+library(tidyr)
+
+mean_ratings <- data3 %>%
+  group_by(title,gender) %>%
+  summarize(mean(rating))
+
+mean_ratings = pivot_wider( mean_ratings, 
+                           names_from = gender, 
+                           values_from = 'mean(rating)',
+                           values_fill = list(n = 0))
+
+mean_ratings[is.na(mean_ratings)] <- 0
+View(mean_ratings[1:5,])
+```
+
+```{r}
+View(mean_ratings)
+```
+
+```{r}
+mean_ratings2 <- data3 %>%
+  group_by(title, genres, gender) %>%
+  summarize(mean(rating))
+
+mean_ratings2 = pivot_wider( mean_ratings2, 
+                           names_from = gender, 
+                           values_from = 'mean(rating)',
+                           values_fill = list(n = 0))
+
+mean_ratings2[is.na(mean_ratings2)] <- 0
+View(mean_ratings2[1:5,])
+```
+
+```{r}
+# Movie rating count
+rating_count_by_movieid <- data3 %>% 
+  group_by(movie_id, title) %>% 
+  summarize(n = n())
+View(rating_count_by_movieid[1:10,])
+```
+
+```{r}
+# Meaningful movie rating count
+meaningful_rating_count_by_movieid <- data3 %>%
+  group_by(title) %>%
+  summarize( n = n()) %>% 
+  filter(n >=250) %>% 
+  arrange(desc(n))
+View(meaningful_rating_count_by_movieid)
+# nrow(meaningful_rating_count_by_movieid)
+```
+  
+```{r}
+# Meaningful movie rating average rating
+meaningful_mean_ratings <- data3 %>%
+  group_by(title) %>%
+  summarize(mean = mean(rating), n = n()) %>% 
+  filter(n >=250) %>% 
+  arrange(desc(n, mean))
+
+View(meaningful_mean_ratings)
+```
+  
+```{r}
+ # Top female rated movies
+female_meaningful_mean_rating <- data3 %>%
+  group_by(title, gender) %>%
+  summarize(female_mean=mean(rating), n = n()) %>% 
+  filter(n >=125) %>% 
+  filter(gender=="F") %>%
+  arrange(desc(female_mean))
+
+View(female_meaningful_mean_rating)
+```
+
+```{r}
+ # Top male rated movies
+male_meaningful_mean_rating <- data3 %>%
+  group_by(title, gender) %>%
+  summarize(male_mean=mean(rating), n = n()) %>% 
+  filter(n >=125) %>% 
+  filter(gender=="M") %>%
+  arrange(desc(male_mean))
+
+View(male_meaningful_mean_rating)
+```
+
+```{r}
+# Meaningful movie rating mean rating diff
+
+
+  arrange(desc(diff))
+View(rating_diff[1:10,])
+```
+
+```{r}
+# standard deviation
+rating_std <- data3 %>%
+  group_by(title) %>%
+  summarize(sd(rating),) %>%
+  arrange(title)
+View(rating_std[1:10,])
+```
+
+```{r}
+# standard deviation of meaningful ratings in a descent order
+rating_std <- data3 %>%
+  group_by(title) %>%
+  summarize(sd=sd(rating), n = n()) %>%
+  filter(n >=250) %>% 
+  arrange(desc(sd))
+View(rating_std[1:10,])
+```
